@@ -1,15 +1,15 @@
 pipeline {
-  agent {
-  docker {
-    image 'maven:3.9.9-eclipse-temurin-17'
-    args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
-  }
-}
 
+  agent {
+    docker {
+      image 'maven:3.9.9-eclipse-temurin-17'
+      args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+    }
+  }
 
   environment {
-    SONAR_URL = "http://98.92.110.172:9000"
-    DOCKER_IMAGE = "pritam77241/jenkins"
+    SONAR_URL     = "http://98.92.110.172:9000"
+    DOCKER_IMAGE  = "pritam77241/jenkins"
     GIT_REPO_NAME = "Jenkins-Zero-To-Hero"
     GIT_USER_NAME = "learningjourney95"
   }
@@ -35,17 +35,29 @@ pipeline {
 
     stage('SonarQube Analysis') {
       steps {
-        withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
+        withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_TOKEN')]) {
           sh '''
             cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
 
             mvn clean verify \
-            org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
-            -Dsonar.projectKey=spring-boot-app \
-            -Dsonar.host.url=${SONAR_URL} \
-            -Dsonar.login=${SONAR_AUTH_TOKEN}
+              org.sonarsource.scanner.maven:sonar-maven-plugin:5.5.0.6356:sonar \
+              -Dsonar.projectKey=spring-boot-app \
+              -Dsonar.host.url=${SONAR_URL} \
+              -Dsonar.token=${SONAR_TOKEN}
           '''
         }
+      }
+    }
+
+    // ⚠️ Slow but working fix
+    stage('Install Docker CLI') {
+      steps {
+        sh '''
+          echo "Installing Docker CLI..."
+          apt-get update
+          apt-get install -y docker.io
+          docker --version
+        '''
       }
     }
 
@@ -84,7 +96,8 @@ pipeline {
               java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
 
             git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-            git commit -m "Update image tag to ${BUILD_NUMBER}"
+            git commit -m "Update image tag to ${BUILD_NUMBER}" || echo "No changes to commit"
+
             git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git main
           '''
         }
