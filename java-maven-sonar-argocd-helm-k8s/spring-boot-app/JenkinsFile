@@ -49,11 +49,10 @@ pipeline {
       }
     }
 
-    // ⚠️ Slow but working fix
+    // ⚠️ Slower but works (Docker CLI not in base image)
     stage('Install Docker CLI') {
       steps {
         sh '''
-          echo "Installing Docker CLI..."
           apt-get update
           apt-get install -y docker.io
           docker --version
@@ -86,26 +85,25 @@ pipeline {
     }
 
     stage('Update Deployment Manifest') {
-  steps {
-    withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
-      sh '''
-        cd $WORKSPACE
+      steps {
+        withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+          sh '''
+            cd $WORKSPACE
 
-        git config user.email "my.learning.journey95@gmail.com"
-        git config user.name "learningjourney95"
+            git config user.email "my.learning.journey95@gmail.com"
+            git config user.name "learningjourney95"
 
-        sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" \
-          java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+            sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" \
+              java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
 
-        git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-        git commit -m "Update image tag to ${BUILD_NUMBER}" || echo "No changes to commit"
+            git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+            git commit -m "Update image tag to ${BUILD_NUMBER}" || echo "No changes to commit"
 
-        git push https://${GITHUB_TOKEN}@github.com/learningjourney95/Jenkins-Zero-To-Hero.git main
-      '''
+            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git main
+          '''
+        }
+      }
     }
-  }
-}
-
   }
 
   post {
