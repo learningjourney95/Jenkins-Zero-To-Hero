@@ -4,17 +4,24 @@ pipeline {
     docker {
       image 'maven:3.9.9-eclipse-temurin-17'
       args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+      reuseNode true
     }
   }
 
+  options {
+    skipDefaultCheckout(false)
+  }
+
   environment {
-    SONAR_URL    = "http://98.92.110.172:9000"
-    DOCKER_IMAGE = "pritam77241/jenkins"
+    SONAR_URL     = "http://98.92.110.172:9000"
+    DOCKER_IMAGE  = "pritam77241/jenkins"
+    GIT_REPO_NAME = "Jenkins-Zero-To-Hero"
+    GIT_USER_NAME = "learningjourney95"
   }
 
   stages {
 
-    stage('Checkout SCM (INSIDE CONTAINER)') {
+    stage('Checkout SCM') {
       steps {
         checkout([
           $class: 'GitSCM',
@@ -97,10 +104,19 @@ pipeline {
 
             git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
             git commit -m "Update image tag ${BUILD_NUMBER}" || echo "No changes"
-            git push https://${GITHUB_TOKEN}@github.com/learningjourney95/Jenkins-Zero-To-Hero.git main
+            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git main
           '''
         }
       }
+    }
+  }
+
+  post {
+    success {
+      echo "✅ Pipeline completed successfully"
+    }
+    failure {
+      echo "❌ Pipeline failed"
     }
   }
 }
