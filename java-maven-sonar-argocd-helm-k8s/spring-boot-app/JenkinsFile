@@ -8,6 +8,10 @@ pipeline {
     }
   }
 
+  options {
+    skipDefaultCheckout(false)
+  }
+
   environment {
     SONAR_URL     = "http://98.92.110.172:9000"
     DOCKER_IMAGE  = "pritam77241/jenkins"
@@ -17,11 +21,17 @@ pipeline {
 
   stages {
 
-    stage('Checkout') {
+    stage('Checkout SCM') {
       steps {
-        git branch: 'main',
+        checkout([
+          $class: 'GitSCM',
+          branches: [[name: '*/main']],
+          userRemoteConfigs: [[
             url: 'https://github.com/learningjourney95/Jenkins-Zero-To-Hero',
             credentialsId: 'github'
+          ]]
+        ])
+        sh 'ls -la .git'
       }
     }
 
@@ -39,7 +49,6 @@ pipeline {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_TOKEN')]) {
           sh '''
             cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
-
             mvn clean verify \
               org.sonarsource.scanner.maven:sonar-maven-plugin:5.5.0.6356:sonar \
               -Dsonar.projectKey=spring-boot-app \
@@ -50,13 +59,11 @@ pipeline {
       }
     }
 
-    // ⚠️ Slower but works (Docker CLI not in base image)
     stage('Install Docker CLI') {
       steps {
         sh '''
           apt-get update
           apt-get install -y docker.io
-          docker --version
         '''
       }
     }
@@ -89,8 +96,6 @@ pipeline {
       steps {
         withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
           sh '''
-            cd $WORKSPACE
-
             git config user.email "my.learning.journey95@gmail.com"
             git config user.name "learningjourney95"
 
@@ -98,8 +103,7 @@ pipeline {
               java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
 
             git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-            git commit -m "Update image tag to ${BUILD_NUMBER}" || echo "No changes to commit"
-
+            git commit -m "Update image tag ${BUILD_NUMBER}" || echo "No changes"
             git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git main
           '''
         }
