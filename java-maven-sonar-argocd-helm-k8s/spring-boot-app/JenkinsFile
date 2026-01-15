@@ -86,23 +86,23 @@ pipeline {
     }
 
     stage('Update Deployment Manifest') {
-      steps {
-        withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-          sh '''
-            git config user.email "my.learning.journey95@gmail.com"
-            git config user.name "learningjourney95"
+  steps {
+    withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+      sh '''
+        git config user.email "my.learning.journey95@gmail.com"
+        git config user.name "learningjourney95"
 
-            sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" \
-              java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+        sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" \
+          java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
 
-            git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-            git commit -m "Update image tag to ${BUILD_NUMBER}" || echo "No changes to commit"
+        git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+        git commit -m "Update image tag to ${BUILD_NUMBER}" || echo "No changes to commit"
 
-            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git main
-          '''
-        }
-      }
+        git push https://${GITHUB_TOKEN}@github.com/learningjourney95/Jenkins-Zero-To-Hero.git main
+      '''
     }
+  }
+}
   }
 
   post {
