@@ -2,7 +2,7 @@ pipeline {
 
   agent {
     docker {
-      image 'maven:3.9.9-eclipse-temurin-17'
+      image 'docker:27.0.3-cli'
       args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
       reuseNode true
     }
@@ -20,6 +20,18 @@ pipeline {
   }
 
   stages {
+
+    stage('Install Build Tools') {
+      steps {
+        sh '''
+          apk update
+          apk add --no-cache maven openjdk17 git curl
+          java -version
+          mvn -version
+          docker --version
+        '''
+      }
+    }
 
     stage('Checkout SCM') {
       steps {
