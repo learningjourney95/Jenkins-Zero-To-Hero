@@ -25,9 +25,11 @@ pipeline {
       steps {
         sh '''
           apk add --no-cache maven openjdk17 git curl
+          echo "=== Versions ==="
           java -version
           mvn -version
           docker --version
+          git --version
         '''
       }
     }
@@ -99,6 +101,9 @@ pipeline {
         dir(env.WORKSPACE) {
           withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
             sh '''
+              # Fix Git "dubious ownership" issue (Docker agent runs as root)
+              git config --global --add safe.directory ${WORKSPACE}
+
               git status
               git config user.email "my.learning.journey95@gmail.com"
               git config user.name "learningjourney95"
