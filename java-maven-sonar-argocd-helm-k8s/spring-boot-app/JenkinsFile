@@ -9,7 +9,7 @@ pipeline {
   }
 
   options {
-    skipDefaultCheckout(false)
+    skipDefaultCheckout(true)
   }
 
   environment {
@@ -36,12 +36,13 @@ pipeline {
 
     stage('Checkout SCM') {
       steps {
+        sh 'git config --global --add safe.directory ${WORKSPACE}'
         checkout([
           $class: 'GitSCM',
           branches: [[name: '*/main']],
           userRemoteConfigs: [[
             url: 'https://github.com/learningjourney95/Jenkins-Zero-To-Hero.git',
-            credentialsId: 'github'
+            credentialsId: 'github-cred'
           ]]
         ])
         sh 'git status'
@@ -62,7 +63,7 @@ pipeline {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_TOKEN')]) {
           sh '''
             cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
-            mvn clean verify \
+            mvn verify \
               org.sonarsource.scanner.maven:sonar-maven-plugin:5.5.0.6356:sonar \
               -Dsonar.projectKey=spring-boot-app \
               -Dsonar.host.url=${SONAR_URL} \
@@ -98,12 +99,10 @@ pipeline {
 
     stage('Update Deployment Manifest') {
       steps {
-        withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+        withCredentials([string(credentialsId: 'github-pat', variable: 'GITHUB_TOKEN')]) {
           sh '''
-            # Fix Git "dubious ownership" (Docker agent runs as root)
             git config --global --add safe.directory ${WORKSPACE}
 
-            # Attach HEAD to main (CRITICAL FIX)
             git checkout -B main
 
             git config user.email "my.learning.journey95@gmail.com"
