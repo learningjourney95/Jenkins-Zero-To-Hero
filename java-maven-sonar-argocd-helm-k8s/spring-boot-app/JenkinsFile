@@ -40,11 +40,11 @@ pipeline {
           $class: 'GitSCM',
           branches: [[name: '*/main']],
           userRemoteConfigs: [[
-            url: 'https://github.com/learningjourney95/Jenkins-Zero-To-Hero',
+            url: 'https://github.com/learningjourney95/Jenkins-Zero-To-Hero.git',
             credentialsId: 'github'
           ]]
         ])
-        sh 'ls -la .git'
+        sh 'git status'
       }
     }
 
@@ -98,25 +98,25 @@ pipeline {
 
     stage('Update Deployment Manifest') {
       steps {
-        dir(env.WORKSPACE) {
-          withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-            sh '''
-              # Fix Git "dubious ownership" issue (Docker agent runs as root)
-              git config --global --add safe.directory ${WORKSPACE}
+        withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+          sh '''
+            # Fix Git "dubious ownership" (Docker agent runs as root)
+            git config --global --add safe.directory ${WORKSPACE}
 
-              git status
-              git config user.email "my.learning.journey95@gmail.com"
-              git config user.name "learningjourney95"
+            # Attach HEAD to main (CRITICAL FIX)
+            git checkout -B main
 
-              sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" \
-                java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+            git config user.email "my.learning.journey95@gmail.com"
+            git config user.name "learningjourney95"
 
-              git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-              git commit -m "Update image tag ${BUILD_NUMBER}" || echo "No changes to commit"
+            sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" \
+              java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
 
-              git push https://x-access-token:${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git main
-            '''
-          }
+            git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+            git commit -m "Update image tag ${BUILD_NUMBER}" || echo "No changes to commit"
+
+            git push https://x-access-token:${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git main
+          '''
         }
       }
     }
