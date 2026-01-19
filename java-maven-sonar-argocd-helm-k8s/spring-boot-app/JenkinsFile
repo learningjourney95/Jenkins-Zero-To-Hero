@@ -99,7 +99,7 @@ pipeline {
 
     stage('Update Deployment Manifest') {
       steps {
-        withCredentials([string(credentialsId: 'github-pat', variable: 'GITHUB_TOKEN')]) {
+        withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
           sh '''
             git config --global --add safe.directory ${WORKSPACE}
 
